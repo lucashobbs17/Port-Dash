@@ -19,7 +19,7 @@ ALL, METALS, GRAINS = MONTH_CODES, "HKNUZ", "HKNUZ"
 # product: (contract root, exchange suffix, listed delivery months)
 CONTRACTS = {
     "Brent": ("BZ", "NYM", ALL), "WTI": ("CL", "NYM", ALL), "NY Harbor ULSD": ("HO", "NYM", ALL),
-    "RBOB gasoline": ("RB", "NYM", ALL), "Henry Hub": ("NG", "NYM", ALL),
+    "RBOB gasoline": ("RB", "NYM", ALL), "Henry Hub": ("NG", "NYM", ALL),    # no TTF: Yahoo has no contract a year out
     "Gold": ("GC", "CMX", "GJMQVZ"), "Silver": ("SI", "CMX", METALS), "Copper": ("HG", "CMX", METALS),
     "Corn": ("ZC", "CBT", GRAINS), "Wheat": ("ZW", "CBT", GRAINS), "Soybeans": ("ZS", "CBT", "FHKNQUX"),
 }
@@ -33,6 +33,7 @@ def _db():
     conn.execute("""CREATE TABLE IF NOT EXISTS curve (
         date TEXT, product TEXT, near_ticker TEXT, far_ticker TEXT, near_price REAL, far_price REAL,
         PRIMARY KEY (date, product))""")
+    conn.execute("CREATE TABLE IF NOT EXISTS headlines (date TEXT, topic TEXT, n INTEGER, PRIMARY KEY (date, topic))")
     return conn
 
 
@@ -117,3 +118,12 @@ def curve_history():
         df = pd.read_sql("SELECT * FROM curve", conn, parse_dates=["date"])
     df["carry"] = df["near_price"] / df["far_price"] - 1
     return df.pivot(index="date", columns="product", values="carry")
+
+
+# ---------- headline counter ----------
+
+def record_headlines(counts):
+    """Headlines per topic in the last 24 hours, one row per day, to build a news-volume history."""
+    day = date.today().isoformat()
+    with _db() as conn:
+        conn.executemany("INSERT OR REPLACE INTO headlines VALUES (?, ?, ?)", [(day, t, int(n)) for t, n in counts.items()])
