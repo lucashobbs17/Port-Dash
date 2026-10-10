@@ -37,8 +37,9 @@ def get_since_purchase():
 
     drawdowns = {}
     for ticker, entry in entry_dates.items():
-        held = prices.loc[entry:, ticker]
-        drawdowns[ticker] = (held / held.cummax() - 1).iloc[-1]
+        held = prices.loc[entry:, ticker].dropna()
+        peak = max(held.max(), avg_price.get(ticker, float('nan')))
+        drawdowns[ticker] = held.iloc[-1] / peak - 1
 
     return pd.DataFrame({
         'entry_date': entry_dates,

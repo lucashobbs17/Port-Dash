@@ -4,8 +4,9 @@ import yfinance as yf
 from positions import get_positions
 import pandas as pd
 @st.cache_data(ttl=300)
-def get_price_history(period='2y', base='USD'):
-    tickers = get_positions()['ticker'].tolist()
+def get_price_history(period='2y', base='USD', tickers=None):
+    if tickers is None:
+        tickers = get_positions()['ticker'].tolist()
     prices = yf.download(tickers, period=period)['Close'].ffill()
 
     missing = prices.columns[prices.isna().all()].tolist()
@@ -66,17 +67,6 @@ def get_currencies():
     tickers = get_positions()['ticker'].tolist()
     return {t: yf.Ticker(t).fast_info['currency'] for t in tickers}
 
-@st.cache_data(ttl=300)
-def get_price_history(period='2y', base='USD'):
-    tickers = get_positions()['ticker'].tolist()
-    prices = yf.download(tickers, period=period)['Close'].ffill()
-    if base is None:
-        return prices
-    for ticker, ccy in get_currencies().items():
-        if ccy != base:
-            fx = yf.download(f'{ccy}{base}=X', period=period)['Close'].squeeze()
-            prices[ticker] = prices[ticker] * fx.reindex(prices.index).ffill()
-    return prices
 
 if __name__ == '__main__':
     price_history = get_price_history()

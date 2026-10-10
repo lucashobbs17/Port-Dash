@@ -25,6 +25,5 @@ def rename_ticker(old, new):
     with sqlite3.connect(DB) as conn:
         conn.execute("UPDATE trades SET ticker = ? WHERE ticker = ?", (new, old))
 if __name__ == "__main__":
-    rename_ticker("AYV", "AYV.PA")
-    rename_ticker("BAS", "BAS.DE")
+
     show_trades()
